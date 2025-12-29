@@ -4,7 +4,7 @@ import TimelineCalendar from './components/TimelineCalendar';
 import ReminderWidget from './components/ReminderWidget';
 import Assistant from './components/Assistant';
 import UserProfile from './components/UserProfile';
-import { Bell, Search, LayoutGrid, List as ListIcon, Trash2, CheckCircle2, Repeat, Mail, MessageSquare, Phone, AlertCircle, Plus } from 'lucide-react';
+import { Bell, Search, LayoutGrid, List as ListIcon, Trash2, CheckCircle2, Repeat, Mail, MessageSquare, Phone, AlertCircle, Plus, Contact } from 'lucide-react';
 
 // Utility for ID generation
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -194,15 +194,25 @@ function App() {
             {new Date(reminder.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
          </div>
          
-         <div className="flex items-center gap-3 pt-2 border-t border-gray-50">
-            <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-full group-hover:bg-gray-100 transition-colors duration-300">
-                {getMethodIcon(reminder.method)}
-                <span>{reminder.method}</span>
+         <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
+            <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-full group-hover:bg-gray-100 transition-colors duration-300">
+                    {getMethodIcon(reminder.method)}
+                    <span>{reminder.method}</span>
+                </div>
+                {reminder.recurrence !== RecurrenceType.None && (
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <Repeat size={12} />
+                        <span>{reminder.recurrence}</span>
+                    </div>
+                )}
             </div>
-            {reminder.recurrence !== RecurrenceType.None && (
-                <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                    <Repeat size={12} />
-                    <span>{reminder.recurrence}</span>
+            
+            {/* Display Contact Info if available */}
+            {reminder.contactInfo && (
+                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 pl-1">
+                    <Contact size={10} />
+                    <span className="truncate">{reminder.contactInfo}</span>
                 </div>
             )}
          </div>

@@ -32,6 +32,11 @@ export interface Reminder {
   method: CommunicationMethod;
   completed: boolean;
   createdAt: number;
+  
+  // New features
+  recurrenceEndMode?: 'never' | 'date' | 'count';
+  recurrenceEndValue?: string | number;
+  contactInfo?: string;
 }
 
 export interface User {

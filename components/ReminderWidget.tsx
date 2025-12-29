@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Reminder, ReminderType, RecurrenceType, CommunicationMethod } from '../types';
-import { Plus, Wand2, Loader2, X, Repeat, Bell, Mail, MessageSquare, Phone, Save } from 'lucide-react';
+import { Plus, Wand2, Loader2, X, Repeat, Bell, Mail, MessageSquare, Phone, Save, Calendar, Hash, Contact } from 'lucide-react';
 import { refineReminderText } from '../services/geminiService';
 
 interface ReminderWidgetProps {
@@ -18,6 +18,12 @@ const ReminderWidget: React.FC<ReminderWidgetProps> = ({ onAdd, onClose, initial
   const [type, setType] = useState<ReminderType>(ReminderType.Standard);
   const [recurrence, setRecurrence] = useState<RecurrenceType>(RecurrenceType.None);
   const [method, setMethod] = useState<CommunicationMethod>(CommunicationMethod.Notification);
+  
+  // New State for features
+  const [recurrenceEndMode, setRecurrenceEndMode] = useState<'never' | 'date' | 'count'>('never');
+  const [recurrenceEndValue, setRecurrenceEndValue] = useState<string | number>('');
+  const [contactInfo, setContactInfo] = useState('');
+
   const [isRefining, setIsRefining] = useState(false);
 
   // Initialize form with initialReminder data or defaults when opened
@@ -31,6 +37,11 @@ const ReminderWidget: React.FC<ReminderWidgetProps> = ({ onAdd, onClose, initial
       setType(initialReminder.type);
       setRecurrence(initialReminder.recurrence);
       setMethod(initialReminder.method);
+      
+      // Load new fields
+      setRecurrenceEndMode(initialReminder.recurrenceEndMode || 'never');
+      setRecurrenceEndValue(initialReminder.recurrenceEndValue || '');
+      setContactInfo(initialReminder.contactInfo || '');
     } else {
       // Reset or set default date from click
       setTitle('');
@@ -45,6 +56,10 @@ const ReminderWidget: React.FC<ReminderWidgetProps> = ({ onAdd, onClose, initial
       setType(ReminderType.Standard);
       setRecurrence(RecurrenceType.None);
       setMethod(CommunicationMethod.Notification);
+      
+      setRecurrenceEndMode('never');
+      setRecurrenceEndValue('');
+      setContactInfo('');
     }
   }, [initialReminder, initialDate]);
 
@@ -62,8 +77,14 @@ const ReminderWidget: React.FC<ReminderWidgetProps> = ({ onAdd, onClose, initial
       recurrence,
       method,
       completed: initialReminder ? initialReminder.completed : false,
+      
+      // Only include recurrence end info if recurring
+      recurrenceEndMode: recurrence === RecurrenceType.None ? undefined : recurrenceEndMode,
+      recurrenceEndValue: recurrence === RecurrenceType.None || recurrenceEndMode === 'never' ? undefined : recurrenceEndValue,
+      
+      // Only include contact info if method requires it
+      contactInfo: method === CommunicationMethod.Notification ? undefined : contactInfo,
     });
-    // Do not automatically close here if we want to show feedback, but for now we rely on parent to close or reset
   };
 
   const handleAiRefine = async () => {
@@ -152,24 +173,75 @@ const ReminderWidget: React.FC<ReminderWidgetProps> = ({ onAdd, onClose, initial
              </div>
           </div>
 
-          <div className="flex gap-4">
-            <div className="flex-1">
-                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Repeat size={12} /> Recurrence
-                 </label>
-                 <div className="relative">
-                    <select
-                        value={recurrence}
-                        onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}
-                        className={`${inputClass} appearance-none cursor-pointer`}
-                    >
-                        {Object.values(RecurrenceType).map(r => (
-                            <option key={r} value={r}>{r}</option>
-                        ))}
-                    </select>
+          <div className="flex flex-col gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+             <div className="flex gap-4">
+                <div className="flex-1">
+                     <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Repeat size={12} /> Recurrence
+                     </label>
+                     <div className="relative">
+                        <select
+                            value={recurrence}
+                            onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}
+                            className={`${inputClass} appearance-none cursor-pointer bg-white`}
+                        >
+                            {Object.values(RecurrenceType).map(r => (
+                                <option key={r} value={r}>{r}</option>
+                            ))}
+                        </select>
+                     </div>
+                </div>
+                
+                {/* Recurrence End Settings */}
+                {recurrence !== RecurrenceType.None && (
+                    <div className="flex-1 animate-fade-in">
+                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Ends</label>
+                        <select
+                             value={recurrenceEndMode}
+                             onChange={(e) => setRecurrenceEndMode(e.target.value as any)}
+                             className={`${inputClass} appearance-none cursor-pointer bg-white`}
+                        >
+                             <option value="never">Never</option>
+                             <option value="date">On Date</option>
+                             <option value="count">After...</option>
+                        </select>
+                    </div>
+                )}
+             </div>
+
+             {/* Recurrence End Detail Input */}
+             {recurrence !== RecurrenceType.None && recurrenceEndMode !== 'never' && (
+                 <div className="animate-fade-in-down">
+                     {recurrenceEndMode === 'date' ? (
+                         <div className="relative">
+                            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                                type="date"
+                                value={recurrenceEndValue as string}
+                                onChange={(e) => setRecurrenceEndValue(e.target.value)}
+                                className={`${inputClass} bg-white pl-10`}
+                                placeholder="Select End Date"
+                            />
+                         </div>
+                     ) : (
+                         <div className="relative">
+                            <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input 
+                                type="number"
+                                min="1"
+                                value={recurrenceEndValue}
+                                onChange={(e) => setRecurrenceEndValue(Number(e.target.value))}
+                                className={`${inputClass} bg-white pl-10`}
+                                placeholder="Number of occurrences"
+                            />
+                         </div>
+                     )}
                  </div>
-            </div>
-            <div className="flex-1">
+             )}
+          </div>
+
+          <div className="flex flex-col gap-3">
+             <div>
                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                     Method
                  </label>
@@ -187,7 +259,24 @@ const ReminderWidget: React.FC<ReminderWidgetProps> = ({ onAdd, onClose, initial
                         ))}
                     </select>
                  </div>
-            </div>
+             </div>
+             
+             {/* Conditional Contact Info Input */}
+             {method !== CommunicationMethod.Notification && (
+                 <div className="animate-fade-in-down">
+                     <div className="relative">
+                        <Contact size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type={method === CommunicationMethod.Email ? "email" : "tel"}
+                            value={contactInfo}
+                            onChange={(e) => setContactInfo(e.target.value)}
+                            placeholder={method === CommunicationMethod.Email ? "Enter email address..." : "Enter phone number..."}
+                            className={`${inputClass} pl-10`}
+                            required
+                        />
+                     </div>
+                 </div>
+             )}
           </div>
 
           <div className="relative">
